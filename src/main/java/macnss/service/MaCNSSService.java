@@ -18,6 +18,7 @@ public class MaCNSSService {
             AgentService;
     private final macnss.service.PatientService PatientService;
     private final macnss.service.AdminService AdminService;
+    private final FileService FileService;
     private final Connection connection;
 
     private MaCNSSService() throws SQLException {
@@ -26,6 +27,7 @@ public class MaCNSSService {
         AgentService = new AgentService(connection);
         PatientService = new PatientService(connection);
         AdminService = new AdminService(connection);
+        FileService = new FileService(connection);
     }
 
     public static MaCNSSService getInstance() throws SQLException {
@@ -77,7 +79,7 @@ public class MaCNSSService {
                 case 3 -> {
                     Patient patient = authService.patientAuth(scanner);
                     if (patient != null){
-                        PatientService.showMenu(patient);
+                        PatientService.showMenu(patient,FileService);
                     }
                 }
                 default -> System.out.println("Invalid choice. Please try again.");

@@ -112,7 +112,29 @@ public class RefundFileDAOImpl implements RefundFileDAO {
         }
     }
 
-
+    public RefundFile getFileById(int id) {
+        String sql = "SELECT * FROM files WHERE id = ?";
+        try (PreparedStatement preparedStatement = this.connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, id);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            RefundFile refundFile = null;
+            if (resultSet.next()) {
+                RefundFileStatus status = RefundFileStatus.valueOf(resultSet.getString("status"));
+                // Use RefundFileStatus.valueOf to convert the status string to enum
+                refundFile = new RefundFile(
+                        resultSet.getInt("id"),
+                        resultSet.getInt("user_id"),
+                        resultSet.getString("creation_date"),
+                        resultSet.getDouble("total_refund"),
+                        status
+                );
+            }
+            return refundFile;
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 
 
@@ -147,6 +169,17 @@ public class RefundFileDAOImpl implements RefundFileDAO {
             return null;
         }
     }
-
+    public boolean updateFile(RefundFile file) {
+        String sql = "UPDATE files SET status = ?::refund_file_status WHERE id = ?";
+        try (PreparedStatement preparedStatement = this.connection.prepareStatement(sql)) {
+            preparedStatement.setString(1, file.getStatus().toString());
+            preparedStatement.setInt(2, file.getId());
+            int rowsAffected = preparedStatement.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 }

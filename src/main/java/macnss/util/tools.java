@@ -41,4 +41,18 @@ public class tools {
         Date currentDate = new Date();
         return dateFormat.format(currentDate);
     }
+    public static double percentageStringToDouble(String percentage) {
+        try {
+            // Remove the '%' character from the percentage string
+            String cleanedPercentage = percentage.replaceAll("%", "");
+
+            // Parse the cleaned string to a double and divide by 100
+            double result = Double.parseDouble(cleanedPercentage) / 100.0;
+
+            return result;
+        } catch (NumberFormatException e) {
+            // Handle invalid input, such as non-numeric or improperly formatted strings
+            throw new IllegalArgumentException("Invalid percentage string: " + percentage);
+        }
+    }
 }

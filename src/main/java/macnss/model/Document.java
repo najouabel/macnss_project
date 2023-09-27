@@ -1,16 +1,18 @@
 package macnss.model;
 
-public abstract class Document {
+public class Document {
     int id;
     String name;
     double amountPaid;
-    String percentage;
+    Double percentage;
+    String type;
 
-    public Document(int id, String name, double amountPaid, String percentage) {
+    public Document(int id, String name, double amountPaid, Double percentage,String type) {
         this.id = id;
         this.name = name;
         this.amountPaid = amountPaid;
         this.percentage = percentage;
+        this.type = type;
     }
 
     public Document() {
@@ -18,7 +20,7 @@ public abstract class Document {
     }
 
     //public double CalculateRefundedAmount() {
-       // return amountPaid * percentage / 100;
+    // return amountPaid * percentage / 100;
     //}
 
     public int getId() {
@@ -45,11 +47,28 @@ public abstract class Document {
         this.amountPaid = amountPaid;
     }
 
-    public String getPercentage() {
-        return percentage;
+    public Double getPercentage() {
+        if (percentage > 0){
+            return percentage;
+        }else {
+            return switch (type) {
+                case "radio" -> 0.3;
+                case "medicalExamination" -> 0.2;
+                case "medicalAnalysis" -> 0.4;
+                default -> 0.0;
+            };
+        }
     }
 
-    public void setPercentage(String percentage) {
+    public void setPercentage(Double percentage) {
         this.percentage = percentage;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type;
     }
 }

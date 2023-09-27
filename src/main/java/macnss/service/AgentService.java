@@ -35,7 +35,7 @@ public class AgentService {
 
                 switch (choice) {
 
-                    case 1 -> FileService.addFile();
+                    case 1 -> FileService.addFile(scanner);
                     case 2 -> FileService.updateFileStatus();
                     case 5 -> new AuthenticationService(new UserDAOImpl(this.connection)).addPatient(scanner);
                     case 6 -> {

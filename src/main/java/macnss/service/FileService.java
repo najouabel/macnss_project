@@ -1,9 +1,6 @@
 package macnss.service;
 
-import macnss.dao.DocumentDAOImpl;
-import macnss.dao.DocumentDAO;
-import macnss.dao.PatientDAOImpl;
-import macnss.dao.RefundFileDAOImpl;
+import macnss.dao.*;
 import macnss.model.*;
 import util.tools;
 import macnss.Enum.RefundFileStatus;
@@ -18,18 +15,19 @@ public class FileService {
 
     private final RefundFileDAOImpl refundFileDAOImpl;
 
-    private final PatientDAOImpl patientDAOImpl;
+    private final PatientService PatientService;
 
-    List<Document> documents;
+    private final macnss.dao.UserDAOImpl UserDAOImpl;
 
     private final Connection connection;
 
-
+    List<Document> documents;
 
     public FileService(Connection connection) {
-        this.patientDAOImpl =  new PatientDAOImpl(connection);
-        this.connection = connection;
+        this.PatientService =  new PatientService(connection);
         this.refundFileDAOImpl= new RefundFileDAOImpl(connection);
+        this.connection = connection;
+        this.UserDAOImpl = new UserDAOImpl(connection);
     }
 
     public void checkClientFiles(User authenticatedUser) {
@@ -48,20 +46,48 @@ public class FileService {
         System.out.println("---------------------------------------------------------");
 
     }
+    public void getClientFiles(int matricule) {
+        Patient patient = UserDAOImpl.getUserByMatricule(matricule);
+        List<RefundFile> refundfiles = refundFileDAOImpl.getFileByUser(patient);
+        System.out.println("your files :");
+        for (RefundFile refundfile : refundfiles) {
+            System.out.println(refundfile.getId() + "- Status : " + refundfile.getStatus() + "- TotalRefund : " + refundfile.getTotalRefund());
+        }
+    }
+    Document createDocument(String type,Scanner scanner){
+        System.out.println("Enter how much paid on the "+type+" : ");
+        int amount = scanner.nextInt();
+        return new Document(0,type,amount,0.0,type);
+    }
 
-    public void addFile()  {
-        DocumentDAOImpl documentDAO = new DocumentDAOImpl();
+    public void addFile(Scanner scanner)  {
+        DocumentDAOImpl documentDAO = new DocumentDAOImpl(connection);
         List<Document> selectedDocuments = new ArrayList<>();
 
-        PatientDAOImpl patientDAOImpl = new PatientDAOImpl(this.connection);
-        Patient patient = patientDAOImpl.createPatient();
-
-        if (patientDAOImpl.addPatientToDatabase(patient)) {
-            System.out.println("Patient added with ID: " + patient.getId());
-        } else {
-            System.out.println("Failed to add the patient.");
-            return;
+        System.out.println("Please choose : ");
+        System.out.println("1 - existing patient \n2 - new patient");
+        int choice = tools.tryParse(scanner.nextLine());
+        while (choice != 1 && choice != 2){
+            System.out.println("Please choose : ");
+            System.out.println("1 - existing patient \n 2 - new patient");
+            choice = tools.tryParse(scanner.nextLine());
         }
+        Patient patient = null;
+        if(choice == 1){
+            System.out.println("enter patient matricule : ");
+            int matricule = scanner.nextInt();
+            patient = UserDAOImpl.getUserByMatricule(matricule);
+        }else {
+            patient = PatientService.createPatient();
+            if (patient != null) {
+                System.out.println("Patient added with ID: " + patient.getId());
+            } else {
+                System.out.println("Failed to add the patient.");
+                return;
+            }
+        }
+
+
 
 
         while (true) {
@@ -72,21 +98,39 @@ public class FileService {
             System.out.println("4. Medical Analysis");
             System.out.println("5. Finish Adding Documents");
             System.out.print("Enter your choice: ");
-            Scanner scanner = new Scanner(System.in);
+            scanner = new Scanner(System.in);
 
-            int choice = scanner.nextInt();
+            choice = scanner.nextInt();
             scanner.nextLine();
 
             switch (choice) {
-                case 1:
-
+                case 1 -> {
                     Medicine medicine = documentDAO.createMedicineDocument();
-                    if (medicine != null){
-                        Document document = medicine;
-                        selectedDocuments.add(document);
+                    if (medicine != null) {
+                        selectedDocuments.add(medicine);
                     }
-                    break;
-                case 5:
+                }
+                case 2 -> {
+                    Document radiography = createDocument("radio", scanner);
+                    if (radiography != null) {
+                        selectedDocuments.add(radiography);
+                    }
+                }
+                case 3 -> {
+                    // Create a Medical Examination document
+                    Document medicalExamination = createDocument("medicalExamination", scanner);
+                    if (medicalExamination != null) {
+                        selectedDocuments.add(medicalExamination);
+                    }
+                }
+                case 4 -> {
+                    // Create a Medical Analysis document
+                    Document medicalAnalysis = createDocument("medicalAnalysis", scanner);
+                    if (medicalAnalysis != null) {
+                        selectedDocuments.add(medicalAnalysis);
+                    }
+                }
+                case 5 -> {
                     if (selectedDocuments.isEmpty()) {
                         System.out.println("No documents selected. Please add at least one document.");
                     } else {
@@ -104,9 +148,8 @@ public class FileService {
                         }
                         return;
                     }
-                    break;
-                default:
-                    System.out.println("Invalid choice. Please select a valid option.");
+                }
+                default -> System.out.println("Invalid choice. Please select a valid option.");
             }
         }
     }
@@ -151,18 +194,13 @@ public class FileService {
 
                     RefundFileStatus newStatus;
                     switch (choice) {
-                        case 1:
-                            newStatus = RefundFileStatus.approved;
-                            break;
-                        case 2:
-                            newStatus = RefundFileStatus.rejected;
-                            break;
-                        case 3:
-                            newStatus = RefundFileStatus.pending;
-                            break;
-                        default:
+                        case 1 -> newStatus = RefundFileStatus.approved;
+                        case 2 -> newStatus = RefundFileStatus.rejected;
+                        case 3 -> newStatus = RefundFileStatus.pending;
+                        default -> {
                             System.out.println("Invalid choice. Status not updated.");
                             return;
+                        }
                     }
 
                     if (refundFileDAOImpl.updateFile(fileId,newStatus)) {
@@ -199,21 +237,59 @@ public class FileService {
         }
 
     }
+    public void editFile(Scanner scanner){
+        List<RefundFile> files =refundFileDAOImpl.getAllFiles();
+        for (RefundFile file : files) {
+            System.out.println(file.getId() + " - " + file.getStatus().toString());
+        }
+        System.out.println("Please enter the file id you want to edit: ");
+        int fileId = scanner.nextInt();
+        RefundFile file = refundFileDAOImpl.getFileById(fileId);
+        System.out.println("Please enter the new file status: ");
+        System.out.println("1- pending\n2- approved\n3- rejected\n");
+        int newFileStatus = scanner.nextInt();
+        if(newFileStatus == 1){
+            file.setStatus(RefundFileStatus.pending);
+            refundFileDAOImpl.updateFile(file);
+            System.out.println("Refund file status updated.");
+        }else if(newFileStatus == 2){
+            file.setStatus(RefundFileStatus.approved);
+            refundFileDAOImpl.updateFile(file);
+            System.out.println("Refund file status updated.");
+        }else if(newFileStatus == 3){
+            file.setStatus(RefundFileStatus.rejected);
+            refundFileDAOImpl.updateFile(file);
+            System.out.println("Refund file status updated.");
+        }else{
+            System.out.println("Invalid choice. Please select a valid option.");
+        }
+
+        if(refundFileDAOImpl.updateFile(file)){
+            System.out.println("File status updated successfully.");
+        }
+
+    }
     public double calculateRefundForDocuments(List<Document> documents) {
         double totalRefund = 0.0;
 
         for (Document document : documents) {
             // Check if the document is a Medicine
-            if (document instanceof Medicine) {
-                Medicine medicine = (Medicine) document;
-                double price = medicine.getPrice();
-                double percentage = medicine.getPercentageAsDouble();
-
+            if (document instanceof Medicine medicine) {
+                double price = medicine.getAmountPaid();
+                double percentage = medicine.getPercentage();
                 // Calculate the refund for this medicine
-                double medicineRefund = price * (percentage / 100.0);
+                double medicineRefund = price * percentage;
 
                 // Add the medicine refund to the total refund
                 totalRefund += medicineRefund;
+            }else {
+                double price = document.getAmountPaid();
+                double percentage = document.getPercentage();
+                // Calculate the refund for this document
+                double documentRefund = price * percentage;
+
+                // Add the document refund to the total refund
+                totalRefund += documentRefund;
             }
         }
         return totalRefund;

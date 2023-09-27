@@ -1,4 +1,6 @@
 package macnss.service;
+import macnss.dao.UserDAOImpl;
+import macnss.model.Patient;
 import macnss.model.User;
 
 import java.sql.Connection;
@@ -6,16 +8,15 @@ import java.util.Scanner;
 
 public class PatientService {
     private final Connection connection;
-
-    private final FileService FileService;
+    private final UserDAOImpl UserDAOImpl;
 
 
     public PatientService(Connection connection) {
         this.connection = connection;
-        this.FileService = new FileService(connection);
+        this.UserDAOImpl = new UserDAOImpl(connection);
     }
 
-    public void showMenu(User authenticatedUser) {
+    public void showMenu(User authenticatedUser,FileService FileService) {
         Scanner scanner = new Scanner(System.in);
 
         while (true) {
@@ -40,6 +41,24 @@ public class PatientService {
                 scanner.nextLine(); // Consume the invalid input
             }
         }
+    }
+    public Patient createPatient() {
+        Scanner scanner = new Scanner(System.in);
+
+        System.out.println("Enter patient name: ");
+        String name = scanner.nextLine();
+
+        System.out.println("Enter patient email: ");
+        String email = scanner.nextLine();
+
+        System.out.println("Enter patient password: ");
+        String password = scanner.nextLine();
+
+        System.out.println("Enter patient matricule: ");
+        int matricule = scanner.nextInt();
+
+        Patient patient = new Patient(0, name, email, password, matricule);
+        return UserDAOImpl.addPatient(patient);
     }
 
 }

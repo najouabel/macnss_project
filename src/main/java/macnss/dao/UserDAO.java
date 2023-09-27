@@ -9,7 +9,7 @@ public interface UserDAO {
 
     public Patient authenticatePatient(int matricule, String password);
     public Agent authenticateAgent(String email, String password);
-    public boolean addPatient(Patient patient);
+    public Patient addPatient(Patient patient);
 
     public boolean addAgent(Agent agent);
 

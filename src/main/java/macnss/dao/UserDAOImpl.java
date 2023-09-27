@@ -1,11 +1,9 @@
 package macnss.dao;
+import macnss.db.DatabaseConnection;
 import macnss.model.Agent;
 import macnss.model.Patient;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 public class UserDAOImpl implements UserDAO {
     protected Connection connection; // Change access level to protected
@@ -76,18 +74,46 @@ public class UserDAOImpl implements UserDAO {
     }
 
     @Override
-    public boolean addPatient(Patient patient) {
-        String sql = "INSERT INTO patients (name, email, password, matricule) VALUES (?, ?, ?, ?)";
-        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
-            preparedStatement.setString(1, patient.getName());
-            preparedStatement.setString(2, patient.getEmail());
-            preparedStatement.setString(3, patient.getPassword());
-            preparedStatement.setInt(4, patient.getMatricule());
-            int rowsAffected = preparedStatement.executeUpdate();
-            return rowsAffected > 0;
-        } catch (SQLException e) {
-            return false;
-        }
+    public Patient addPatient(Patient patient) {
+
+            String sql = "INSERT INTO patients (name, email, password, matricule) VALUES (?, ?, ?, ?)";
+            try (PreparedStatement preparedStatement = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                preparedStatement.setString(1, patient.getName());
+                preparedStatement.setString(2, patient.getEmail());
+                preparedStatement.setString(3, patient.getPassword());
+                preparedStatement.setInt(4, patient.getMatricule());
+
+                int rowsAffected = preparedStatement.executeUpdate();
+
+                if (rowsAffected > 0) {
+                    ResultSet generatedKeys = preparedStatement.getGeneratedKeys();
+                    if (generatedKeys.next()) {
+                        int userId = generatedKeys.getInt(1);
+                        System.out.println(userId);
+                        patient.setId(userId);
+                    }
+                    return patient;
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        return null;
     }
+
+    public Patient getUserByMatricule(int matricule){
+        String sql = "SELECT * FROM patients WHERE matricule = ?";
+        try (PreparedStatement preparedStatement = connection.prepareStatement(sql)) {
+            preparedStatement.setInt(1, matricule);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                return new Patient(resultSet.getInt("id"), resultSet.getString("name"), resultSet.getString("email"), resultSet.getString("password"),resultSet.getInt("matricule"));
+            }
+        }catch (SQLException e){
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
 }
 
